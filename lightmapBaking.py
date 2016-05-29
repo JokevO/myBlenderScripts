@@ -141,8 +141,9 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
             obj.data.materials.append(mat)
 
     def createSphere(self, context):
-        #TODO: implement
-        return 0
+        bpy.ops.mesh.primitive_uv_sphere_add( segments=12, size=800, enter_editmode=False, location=(0, 0, 0))
+        material = self.createSphereMaterial()
+        bpy.context.object.data.materials.append(material)
     
     def createSphereMaterial(self):
         # Create a new material
@@ -185,12 +186,11 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         image.save()
 
     def invoke(self, context, event):
-        #change to cycles render  
         self.saveNewBlendFile()
         self.setCylclesRender()
-        self.createSphereMaterial()
         # material = self.createObjectMaterial()
         # self.giveAllObjectsInSceneMaterial(material)
+        self.createSphere(context)
         return {'FINISHED'}
 
 
