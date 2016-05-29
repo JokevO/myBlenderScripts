@@ -24,7 +24,7 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
     bl_options = {"REGISTER","UNDO"}
 
     def exportUV(self, context):
-    	#TODO: test export UV
+        #TODO: test export UV
         # set object in edit mode
         bpy.ops.object.mode_set(mode = 'EDIT')
         bpy.ops.uv.select_all(action='SELECT')
@@ -41,7 +41,7 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
         bpy.ops.object.mode_set(mode = 'OBJECT')
 
     def createMaterial(self):
-    	# Create a new material
+        # Create a new material
         material = bpy.data.materials.new(name="MaterialTexture")
         material.use_nodes = True
 
@@ -132,15 +132,15 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material.node_tree.links.new(material_output.inputs[0], shader_mix.outputs[0])
         return material
 
-    def giveAllObjectsInSceneMaterial(self, mat):
+    def setObjectsMaterial(self, objects, mat):
         # remove all current materials
-        for obj in bpy.data.objects:
+        for obj in objects:
             if obj.type == 'MESH':
                 for i in range(len(obj.material_slots)):
                     bpy.ops.object.material_slot_remove({'object': obj})
             obj.data.materials.append(mat)
 
-    def createSphere(self, context):
+    def addSphere(self, context):
         bpy.ops.mesh.primitive_uv_sphere_add( segments=12, size=800, enter_editmode=False, location=(0, 0, 0))
         material = self.createSphereMaterial()
         bpy.context.object.data.materials.append(material)
@@ -179,18 +179,27 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
         return material
     
-    def bakeLightmap(self):
+    def bakeLightmap(self, context, objects):
+        # select right objects for baking
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in objects:
+            if obj.type == 'MESH':
+                obj.select = True
+
+        # bake lightmap
         bpy.ops.object.bake(type='COMBINED')
-        image = bpy.data.images[7]
-        image.filepath_raw = "/Users/jokevanoijen/Desktop/test.png"
+        image = bpy.data.images[len(bpy.data.images)-1]
+        image.filepath_raw = bpy.path.abspath("//lightmap.png")
         image.save()
 
     def invoke(self, context, event):
+        objects = bpy.context.selected_objects
         self.saveNewBlendFile()
         self.setCylclesRender()
-        # material = self.createObjectMaterial()
-        # self.giveAllObjectsInSceneMaterial(material)
-        self.createSphere(context)
+        material = self.createObjectMaterial()
+        self.setObjectsMaterial(objects, material)
+        self.addSphere(context)
+        # self.bakeLightmap(context, objects)
         return {'FINISHED'}
 
 
