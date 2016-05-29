@@ -31,6 +31,9 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
 
         # create image
         image = bpy.data.images.new("UV", width=1024, height=1024)
+
+        bpy.ops.uv.export_layout(filepath="/Users/jokevanoijen/Desktop/UV.png", check_existing=True, modified=False, mode='PNG', size=(1024, 1024), opacity=1, tessellated=False)
+
         # write image
         image.filepath_raw = bpy.path.abspath("//UV.png")
         image.file_format = 'PNG'
@@ -101,13 +104,13 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material = bpy.data.materials.new(name="MaterialObject")
         material.use_nodes = True
 
-        #image for texture
+        # image for texture
         image = bpy.data.images.new("map", width=1024, height=1024)
         image.filepath_raw = bpy.path.abspath("//lightmap.png")
         image.file_format = 'PNG'
         image.save() 
 
-        # Remove default
+        # create nodes
         material_diffuse_bsdf = material.node_tree.nodes.get('Diffuse BSDF')
         material_diffuse_bsdf.location = 200, 300
         material_output = material.node_tree.nodes.get('Material Output')
@@ -142,17 +145,50 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         return 0
     
     def createSphereMaterial(self):
-        #TODO: implement
-        return 0
+        # Create a new material
+        material = bpy.data.materials.new(name="MaterialSphere")
+        material.use_nodes = True
+
+        # Remove default
+        material_diffuse_bsdf = material.node_tree.nodes.get('Diffuse BSDF')
+        material.node_tree.nodes.remove(material_diffuse_bsdf)
+
+        material_output = material.node_tree.nodes.get('Material Output')
+        material_output.location = 900,300
+        emission = material.node_tree.nodes.new('ShaderNodeEmission')
+        emission.location = 700,300
+        emission.inputs['Strength'].default_value = 1.0
+        seperate_xyz = material.node_tree.nodes.new('ShaderNodeSeparateXYZ')
+        seperate_xyz.location = 200,300
+        texture_coordinate = material.node_tree.nodes.new('ShaderNodeTexCoord')
+        texture_coordinate.location = 0,300
+        color_ramp = material.node_tree.nodes.new('ShaderNodeValToRGB')
+        color_ramp.location = 400,300
+        color_ramp.color_ramp.elements[0].position = 0.373
+        color_ramp.color_ramp.elements[0].color = (0, 0, 0, 1)
+        color_ramp.color_ramp.elements[1].position = 0.536
+        color_ramp.color_ramp.elements[1].color = (0.336, 0.381, 0.5, 1)
+        color_ramp.color_ramp.elements.new(0.914)
+        color_ramp.color_ramp.elements[2].color = (1, 1, 1, 1)
+
+        # link nodes
+        material.node_tree.links.new(seperate_xyz.inputs[0], texture_coordinate.outputs[0])
+        material.node_tree.links.new(color_ramp.inputs[0], seperate_xyz.outputs[2])
+        material.node_tree.links.new(emission.inputs[0], color_ramp.outputs[0])
+        material.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
+        return material
     
     def bakeLightmap(self):
-        #TODO: implement
-        return 0
+        bpy.ops.object.bake(type='COMBINED')
+        image = bpy.data.images[7]
+        image.filepath_raw = "/Users/jokevanoijen/Desktop/test.png"
+        image.save()
 
     def invoke(self, context, event):
         #change to cycles render  
         self.saveNewBlendFile()
         self.setCylclesRender()
+        self.createSphereMaterial()
         # material = self.createObjectMaterial()
         # self.giveAllObjectsInSceneMaterial(material)
         return {'FINISHED'}
