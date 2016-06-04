@@ -16,6 +16,9 @@ class JokePluginNames(bpy.types.Operator):
     def invoke(self, context, event):
         for obj in bpy.data.objects:
             obj.data.name = obj.name
+        print ('************')
+        print ('*** DONE ***')
+        print ('************')
         return {'FINISHED'}
 
 class JokePluginPrepareObjectForTexture(bpy.types.Operator):
@@ -23,23 +26,15 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
     bl_label = "Joke Prepare object for texture"
     bl_options = {"REGISTER","UNDO"}
 
-    def exportUV(self, context):
-        #TODO: test export UV
+    def exportUV(self):
         # set object in edit mode
         bpy.ops.object.mode_set(mode = 'EDIT')
         bpy.ops.uv.select_all(action='SELECT')
-
         # create image
-        image = bpy.data.images.new("UV", width=1024, height=1024)
-
-        bpy.ops.uv.export_layout(filepath="/Users/jokevanoijen/Desktop/UV.png", check_existing=True, modified=False, mode='PNG', size=(1024, 1024), opacity=1, tessellated=False)
-
-        # write image
-        image.filepath_raw = bpy.path.abspath("//UV.png")
-        image.file_format = 'PNG'
-        image.save()
+        bpy.ops.uv.export_layout(filepath=bpy.path.abspath("//UV.png"), check_existing=True, modified=False, mode='PNG', size=(1024, 1024), opacity=1, tessellated=False)
         bpy.ops.object.mode_set(mode = 'OBJECT')
-
+        print ('*** uv export saved at ' + bpy.path.abspath("//UV.png") + ' ***')
+ 
     def createMaterial(self):
         # Create a new material
         material = bpy.data.materials.new(name="MaterialTexture")
@@ -69,6 +64,7 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
         material.node_tree.links.new(shader_mix.inputs[1], emission.outputs[0])
         material.node_tree.links.new(shader_mix.inputs[2], texture2.outputs[0])
         material.node_tree.links.new(material_output.inputs[0], shader_mix.outputs[0])
+        print('*** created texture material ***')
         return material
 
     def setMaterialSelectedObjects(self, context, mat):
@@ -78,26 +74,31 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
                 for i in range(len(obj.material_slots)):
                     bpy.ops.object.material_slot_remove({'object': obj})
             obj.data.materials.append(mat)
-
+        print ('*** set material for all selected objects ***')
     
     def invoke(self, context, event):
-        # exportUV()
+        self.exportUV()
         material = self.createMaterial()
         self.setMaterialSelectedObjects(context, material)
+        print ('************')
+        print ('*** DONE ***')
+        print ('************')
         return {'FINISHED'}
 
 class JokePluginSetObjectMaterial(bpy.types.Operator):
     bl_idname = "object.joke_set_obj"
-    bl_label = "Joke prepare obj material for lightmap"
+    bl_label = "Joke Bake lightmap"
     bl_options = {"REGISTER","UNDO"}
 
     def saveNewBlendFile(self):
         filepath = bpy.data.filepath
         filepath = filepath.replace(".blend", "-lightmap.blend")
         bpy.ops.wm.save_as_mainfile(filepath=filepath)
+        print ('*** saved new blend file ***')
 
     def setCylclesRender(self):
         bpy.context.scene.render.engine = 'CYCLES'
+        print ('*** set renderer as cycles render ***')
 
     def createObjectMaterial(self):
         # Create a new material
@@ -130,6 +131,8 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material.node_tree.links.new(shader_mix.inputs[1], emission.outputs[0])
         material.node_tree.links.new(shader_mix.inputs[2], material_diffuse_bsdf.outputs[0])
         material.node_tree.links.new(material_output.inputs[0], shader_mix.outputs[0])
+
+        print ('*** created object material ***')
         return material
 
     def setObjectsMaterial(self, objects, mat):
@@ -139,11 +142,13 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
                 for i in range(len(obj.material_slots)):
                     bpy.ops.object.material_slot_remove({'object': obj})
             obj.data.materials.append(mat)
+        print ('*** all geometry objects have the object material ***')
 
     def addSphere(self, context):
         bpy.ops.mesh.primitive_uv_sphere_add( segments=12, size=800, enter_editmode=False, location=(0, 0, 0))
         material = self.createSphereMaterial()
         bpy.context.object.data.materials.append(material)
+        print ('*** added sphere to scene ***')
     
     def createSphereMaterial(self):
         # Create a new material
@@ -177,29 +182,36 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material.node_tree.links.new(color_ramp.inputs[0], seperate_xyz.outputs[2])
         material.node_tree.links.new(emission.inputs[0], color_ramp.outputs[0])
         material.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
+        print ('*** created sphere material ***')
         return material
     
     def bakeLightmap(self, context, objects):
+        print ('*** baking lightmap ***')
         # select right objects for baking
         bpy.ops.object.select_all(action='DESELECT')
         for obj in objects:
             if obj.type == 'MESH':
                 obj.select = True
-
+ 
         # bake lightmap
         bpy.ops.object.bake(type='COMBINED')
-        image = bpy.data.images[len(bpy.data.images)-1]
+        image = bpy.data.images[len(bpy.data.images)-2]
         image.filepath_raw = bpy.path.abspath("//lightmap.png")
         image.save()
+        print('*** lightmap baked, saved at ' + image.filepath_raw + ' ***')
 
     def invoke(self, context, event):
+        bpy.ops.object.mode_set(mode = 'OBJECT')
         objects = bpy.context.selected_objects
         self.saveNewBlendFile()
         self.setCylclesRender()
         material = self.createObjectMaterial()
         self.setObjectsMaterial(objects, material)
         self.addSphere(context)
-        # self.bakeLightmap(context, objects)
+        self.bakeLightmap(context, objects)
+        print ('************')
+        print ('*** DONE ***')
+        print ('************')
         return {'FINISHED'}
 
 
