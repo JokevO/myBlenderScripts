@@ -21,6 +21,26 @@ class JokePluginNames(bpy.types.Operator):
         print ('************')
         return {'FINISHED'}
 
+
+class JokePluginPolygons(bpy.types.Operator):
+    bl_idname = "object.joke_set_max_quads"
+    bl_label = "Joke Only quads and tris"
+    bl_options = {"REGISTER","UNDO"}
+
+    def invoke(self, context, event):
+        bpy.ops.object.mode_set(mode = 'EDIT')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.mesh.select_face_by_sides(type='GREATER')
+        bpy.ops.mesh.quads_convert_to_tris(quad_method='BEAUTY', ngon_method='BEAUTY')
+        bpy.ops.mesh.tris_convert_to_quads()
+        bpy.ops.object.mode_set(mode = 'OBJECT')
+
+        print ('************')
+        print ('*** DONE ***')
+        print ('************')
+        return {'FINISHED'}
+
+
 class JokePluginPrepareObjectForTexture(bpy.types.Operator):
     bl_idname = "object.joke_prepare_for_texture"
     bl_label = "Joke Prepare object for texture"
@@ -85,6 +105,7 @@ class JokePluginPrepareObjectForTexture(bpy.types.Operator):
         print ('************')
         return {'FINISHED'}
 
+
 class JokePluginSetObjectMaterial(bpy.types.Operator):
     bl_idname = "object.joke_set_obj"
     bl_label = "Joke Bake lightmap"
@@ -146,6 +167,7 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
 
     def addSphere(self, context):
         bpy.ops.mesh.primitive_uv_sphere_add( segments=12, size=800, enter_editmode=False, location=(0, 0, 0))
+        bpy.context.object.name = "Sphere"
         material = self.createSphereMaterial()
         bpy.context.object.data.materials.append(material)
         print ('*** added sphere to scene ***')
@@ -184,6 +206,10 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         material.node_tree.links.new(material_output.inputs[0], emission.outputs[0])
         print ('*** created sphere material ***')
         return material
+
+    def removeSphere(self):
+        bpy.context.scene.objects.active = bpy.data.objects["Sphere"]
+        bpy.ops.object.delete()
     
     def bakeLightmap(self, context, objects):
         print ('*** baking lightmap ***')
@@ -209,6 +235,7 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         self.setObjectsMaterial(objects, material)
         self.addSphere(context)
         self.bakeLightmap(context, objects)
+        self.removeSphere()
         print ('************')
         print ('*** DONE ***')
         print ('************')
@@ -218,6 +245,7 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
 def register():
     print("Hello World")
     bpy.utils.register_class(JokePluginNames)
+    bpy.utils.register_class(JokePluginPolygons)
     bpy.utils.register_class(JokePluginSetObjectMaterial)
     bpy.utils.register_class(JokePluginPrepareObjectForTexture)
 
@@ -225,6 +253,7 @@ def register():
 def unregister():
     print("Goodbye World")
     bpy.utils.unregister_class(JokePluginNames)
+    bpy.utils.unregister_class(JokePluginPolygons)
     bpy.utils.unregister_class(JokePluginSetObjectMaterial)
     bpy.utils.unregister_class(JokePluginPrepareObjectForTexture)
 
