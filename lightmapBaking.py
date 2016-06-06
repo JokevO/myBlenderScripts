@@ -208,7 +208,9 @@ class JokePluginSetObjectMaterial(bpy.types.Operator):
         return material
 
     def removeSphere(self):
+        bpy.ops.object.select_all(action='DESELECT')
         bpy.context.scene.objects.active = bpy.data.objects["Sphere"]
+        bpy.data.objects["Sphere"].select = True
         bpy.ops.object.delete()
     
     def bakeLightmap(self, context, objects):
