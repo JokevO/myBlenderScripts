@@ -47,7 +47,9 @@ class createPolygonOcean(bpy.types.Operator):
   def createGrid(self):
     print("creating grid")
     bpy.ops.mesh.primitive_grid_add(x_subdivisions=self.xSubdivisions, y_subdivisions=self.ySubdivisions, radius=self.gridRadius, view_align=False, enter_editmode=False, location=(0,0,0))
-
+    bpy.ops.object.mode_set(mode = 'EDIT')
+    bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
+    bpy.ops.object.mode_set(mode = 'OBJECT')
   
   def moveGridVertices(self):
     print("move grid vertices")
